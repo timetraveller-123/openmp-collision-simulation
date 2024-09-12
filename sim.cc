@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
     SimulationValidator validator(params.param_particles, params.square_size, params.param_radius);
     // Initialize with starting positions
     validator.initialize(particles);
-    // Comment out to enable visualization (makes program much slower)
+    // Uncomment the line below to enable visualization (makes program much slower)
     // validator.enable_viz_output("test.out");
 #endif
 
