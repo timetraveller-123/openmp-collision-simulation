@@ -31,7 +31,7 @@ void detect_overlaps(std::vector<Particle> &particles,
         if(is_wall_overlap(particles[i].loc, square_size, radius)){
             overlaps.push_back(std::make_pair(i,-1));
         }
-        for(int j = i + 1; j < (int)particles.size(); j++) {
+        for(int j = 0; j < (int)particles.size(); j++) {
             if(is_particle_overlap(particles[i].loc, particles[j].loc, radius)) {
                 overlaps.push_back(std::make_pair(i,j));
             }
@@ -42,21 +42,43 @@ void detect_overlaps(std::vector<Particle> &particles,
 
 
 bool detect_collisions(std::vector<Particle> &particles, 
-                        std::vector<std::pair<int,int>> &overlaps, int square_size, int radius) {
+                        int square_size, int radius) {
     bool no_collision = true;
-    for(int i = 0; i < (int)overlaps.size();i++ ) {
-        int f = overlaps[i].first;
-        int s = overlaps[i].second;
-        if(s == -1 && is_wall_collision(particles[f].loc, particles[f].vel, square_size, radius)) {
-            resolve_wall_collision(particles[f].loc, particles[f].vel, square_size, radius);        
-            no_collision = false;
-        } else {
-            if(is_particle_collision(particles[f].loc, particles[f].vel, particles[s].loc, particles[s].vel, radius)) {
-                resolve_particle_collision(particles[f].loc, particles[f].vel, particles[s].loc, particles[s].vel);
+    // for(int i = 0; i < (int)overlaps.size();i++ ) {
+    //     int f = overlaps[i].first;
+    //     int s = overlaps[i].second;
+    //     if(s == -1 && is_wall_collision(particles[f].loc, particles[f].vel, square_size, radius)) {
+    //         resolve_wall_collision(particles[f].loc, particles[f].vel, square_size, radius);        
+    //         no_collision = false;
+    //     } else {
+    //         if(is_particle_collision(particles[f].loc, particles[f].vel, particles[s].loc, particles[s].vel, radius)) {
+    //             resolve_particle_collision(particles[f].loc, particles[f].vel, particles[s].loc, particles[s].vel);
+    //             no_collision = false;
+    //         }
+    //     }
+
+    // }
+
+    for(int i = 0; i < (int)particles.size(); i++) {
+        std::vector<std::pair<int,int>> collisions;
+        if(is_wall_collision(particles[i].loc, particles[i].vel, square_size, radius)) {
+            collisions.push_back(std::make_pair(i,-1));
+             no_collision = false;
+        }
+        for(int j = i+1; j < (int)particles.size(); j++) {
+            if(is_particle_collision(particles[i].loc, particles[i].vel, particles[j].loc, particles[j].vel, radius)) {
+                collisions.push_back(std::make_pair(i,j));
                 no_collision = false;
             }
         }
 
+        for(auto c:collisions) {
+            if(c.second == -1) {
+                resolve_wall_collision(particles[c.first].loc, particles[c.first].vel, square_size, radius);
+            } else {
+                resolve_particle_collision(particles[c.first].loc, particles[c.first].vel, particles[c.second].loc, particles[c.second].vel);
+            }   
+        }
     }
     return no_collision;
 }
@@ -93,7 +115,7 @@ int main(int argc, char* argv[]) {
     for(int i = 1; i <= params.param_steps; i ++) {
         update_positions(particles);
         detect_overlaps(particles, overlaps, params.square_size, params.param_radius);
-        while(!detect_collisions(particles, overlaps, params.square_size, params.param_radius)) {
+        while(!detect_collisions(particles, params.square_size, params.param_radius)) {
             
         }
         #if CHECK == 1
