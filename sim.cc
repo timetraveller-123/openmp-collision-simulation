@@ -19,9 +19,14 @@ void update_positions(std::vector<Particle> &particles) {
 
 }
 
+void clear_grid(std::vector<std::vector<int>> &grid, int number_of_cells) {
+    for(int i = 0; i < number_of_cells*number_of_cells; i++) {
+        grid[i].clear();
+    }
+}
 
-
-void assign_grid(std::vector<Particle> particles, std::vector<int> grid[], std::vector<int> &particle_map, int number_of_cells, int square_size) {
+void assign_grid(std::vector<Particle> particles, std::vector<std::vector<int>> &grid, std::vector<int> &particle_map, int number_of_cells, int square_size) {
+    clear_grid(grid, number_of_cells);
     double cell_length = (double)square_size/number_of_cells;
     for(int i = 0; i < (int)particles.size(); i++) {
         int x = std::min(std::max(0,(int)((particles[i].loc.x)/cell_length)),number_of_cells - 1);
@@ -32,11 +37,7 @@ void assign_grid(std::vector<Particle> particles, std::vector<int> grid[], std::
 
 }
 
-void clear_grid(std::vector<int> grid[], int number_of_cells) {
-    for(int i = 0; i < number_of_cells*number_of_cells; i++) {
-        grid[i].clear();
-    }
-}
+
 
 
 void print(std::vector<Particle> particles) {
@@ -57,7 +58,7 @@ void print_grid(std::vector<int> grid[], int number_of_cells) {
     }
 }
 
-void detect_overlaps(std::vector<Particle> &particles, std::vector<int> grid[], std::vector<std::vector<int>> &overlaps, std::vector<int> &particle_map, int number_of_cells, int radius) {
+void detect_overlaps(std::vector<Particle> &particles, std::vector<std::vector<int>> &grid, std::vector<std::vector<int>> &overlaps, std::vector<int> &particle_map, int number_of_cells, int radius) {
     for(int i = 0; i < (int)particles.size(); i++) {
         overlaps[i].clear();
 
@@ -155,9 +156,9 @@ int main(int argc, char* argv[]) {
     
     std::vector<std::vector<int>> overlaps;
     std::vector<int> particle_map(params.param_particles, 0);
-    const int number_of_cells = 4;
-    std::vector<int> grid[number_of_cells*number_of_cells];
-
+    const int number_of_cells = std::min(1000, (int)((params.square_size)/(2*params.param_radius)));
+    std::vector<std::vector<int>> grid(number_of_cells*number_of_cells, std::vector<int>(1,0));
+    std::cout<<number_of_cells<<std::endl;
     for(int i = 0; i < params.param_particles; i++) {
         std::vector<int> v;
         overlaps.push_back(v);
@@ -174,8 +175,6 @@ int main(int argc, char* argv[]) {
         time2 += (std::chrono::duration_cast<std::chrono::microseconds>(last - begin )).count();
 
 
-
-
         auto start = std::chrono::high_resolution_clock::now();        
         while(!resolve_collisions(particles, overlaps, params.square_size, params.param_radius)) {
         }
@@ -187,7 +186,6 @@ int main(int argc, char* argv[]) {
             // Check final positions
             validator.validate_step(particles);
         #endif
-        clear_grid(grid, number_of_cells);
         
     }
 
