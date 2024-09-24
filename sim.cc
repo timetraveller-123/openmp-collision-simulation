@@ -14,8 +14,6 @@
 
 //int tvx[1000000] ={0},tvy[1000000]={0};
 omp_lock_t locks[1000000];
-std::vector<std::pair<int,int>> connected_overlap[1000000];
-int visit[1000000] = {0};
 long long time3=0,time4=0,time5 = 0;
 
 void update_positions(std::vector<Particle> &particles) {
@@ -100,23 +98,7 @@ void detect_overlaps(std::vector<Particle> &particles, std::vector<std::vector<i
     }
 }
 
-void bfs(std::vector<std::vector<int>> &overlaps, int s, int index, int step) {
-    std::queue<int> q;
-    connected_overlap[index].clear();
-    q.push(s);
-    visit[s] = step;
-    while(!q.empty()) {
-        int n = q.front();
-        q.pop();
-        for(auto j:overlaps[n]) {
-            connected_overlap[index].push_back(std::make_pair(n,j));
-            if(visit[j] != step) {
-                visit[j] = step;
-                q.push(j);
-            }
-        }
-    }
-}
+
 
 
 
@@ -186,7 +168,6 @@ int main(int argc, char* argv[]) {
 
     }
 
-    int m = 1000000;
     for(int i = 1; i <= params.param_steps; i++) {
         
         //std::cout<<i<<std::endl;
@@ -194,13 +175,7 @@ int main(int argc, char* argv[]) {
         update_positions(particles);
         assign_grid(particles, grid, particle_map, number_of_cells, params.square_size);
         detect_overlaps(particles, grid, overlaps, particle_map, number_of_cells, params.param_radius);
-        int index = 0;
-        for(int j = 0; j <= params.param_particles; j++) {
-            if(visit[j] == i)continue;
-            bfs(overlaps, j, index,i);
-            index++;
-        }
-        m = std::min(m,index);        
+             
         const auto last = std::chrono::high_resolution_clock::now();
         time2 += (std::chrono::duration_cast<std::chrono::microseconds>(last - begin )).count();
 
@@ -219,6 +194,6 @@ int main(int argc, char* argv[]) {
     }
 
     //std::cout<<(double)tn/n<<" "<<(double)tm/m<<" "<<tn<<" "<<tm<<std::endl;
-    std::cout<<time<<" " <<time2<<" "<<time3<<" "<<time4<<" "<<time5<<" "<<m<< std::endl;
+    std::cout<<time<<" " <<time2<<" "<<time3<<" "<<time4<<" "<<time5<< std::endl;
 
 }
