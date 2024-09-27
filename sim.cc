@@ -137,7 +137,7 @@ bool resolve_collisions(std::vector<Particle> &particles, int index , int square
 
     #pragma omp parallel for shared(particles) private(i) schedule(dynamic)
     for(i = 0; i < index; i++) {
-        if((long long)connected_overlap[i].size()*2 > ta)continue;
+        //if((long long)connected_overlap[i].size()*2 > ta)continue;
         int j;
         for(j = 0; j < (int)connected_overlap[i].size(); j++) {
             int f = connected_overlap[i][j].first, s = connected_overlap[i][j].second;
@@ -258,7 +258,7 @@ int main(int argc, char* argv[]) {
         
         auto overlap_start = std::chrono::high_resolution_clock::now();
         detect_overlaps(particles, grid, overlaps, particle_map, number_of_cells, params.param_radius);
-        detect_overlap2(particles,grid, particle_map, number_of_cells,params.param_radius);
+        //detect_overlap2(particles,grid, particle_map, number_of_cells,params.param_radius);
         auto overlap_end = std::chrono::high_resolution_clock::now();
         overlap_time += std::chrono::duration_cast<std::chrono::nanoseconds>(overlap_end - overlap_start).count();
         ma = ta = 0;
