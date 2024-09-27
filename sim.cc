@@ -70,7 +70,7 @@ void assign_grid() {
 
 void clear_overlap() {
     for(int d = 0; d < 9; d++){
-        for(int i = 0; i < n*n; i++){
+        for(int i = 0; i < number_of_cells*number_of_cells; i++){
             overlap[d][i].clear();
         }
     }
@@ -85,93 +85,39 @@ void detect_overlaps() {
     int diry[] = {0,0,1,1,1,0,-1,-1,-1};
     
     
-    int i,d;
-    
-    // //gridwise overlap
-    // #pragma omp parallel for shared(overlaps) private(d,i) collapse(2) num_threads(num)
-    // for(d = 0; d<9;d++){
-    //     for(i = 0; i < number_of_cells*number_of_cells; i++){
-    //         overlap[d][i].clear();
-    //         int ni = i + dirx[d] + diry[d]*number_of_cells;
-    //         if(ni >= 0 && ni < number_of_cells*number_of_cells && (i%number_of_cells+dirx[d] >= 0) && (i%number_of_cells + dirx[d] < number_of_cells)) {
-    //             for(auto k:grid[ni]) {
-    //                 for(auto l:grid[i]){
-    //                     if(is_particle_overlap(particles[l].loc, particles[k].loc, radius)) {
-                            
-    //                         overlap[d][i].push_back(std::make_pair(l,k));
-    //                         a++;
-    //                     }
-    //                 }
-    //             }
-    //         }
-            
-    //     }
-    // }
+    int k;
+    clear_overlap();
+    //gridwise overlap
+    #pragma omp parallel for shared(overlap) private(k)  num_threads(num)
+    for(k = 0; k < n*n; k++){
+        for(int j = 0; j < group*group; j++){
+            int i = k/n*number_of_cells*group + k%n*group + gen[j];
+            if(i >= number_of_cells*number_of_cells || (i%number_of_cells)/group + (i/number_of_cells)/group*n != k)continue;
+            for(int d = 0; d < 9; d++){
+                int ni = i + dirx[d] + diry[d]*number_of_cells;
+                if(ni  < 0 || ni >= number_of_cells*number_of_cells || (i%number_of_cells + dirx[d])  < 0 || (i%number_of_cells + dirx[d])  >= number_of_cells)continue;
+                int dx = (ni%number_of_cells)/group -(i%number_of_cells)/group;
+                int dy = (ni/number_of_cells)/group - (i/number_of_cells)/group;
+                int dir;
+                for( dir = 0; dir < 9;dir++){
+                    if(dirx[dir] == dx && diry[dir] == dy)break;
+                }
+                
+                for(auto m:grid[ni]){
+                    for(auto l:grid[i]){
 
-
-    // // another grid wise overlap
-    // #pragma omp parallel for shared(overlap) private(d,i) collapse(2)
-    // for(d = 0; d<9;d++){
-    //     for( i = 0; i < n*n; i++){
-    //         overlap[d][i].clear();
-    //         int ni = i + dirx[d] + diry[d]*n;
-    //         if(ni  < 0 || ni >= n*n || (i%n + dirx[d])  < 0 || (i%n + dirx[d])  >= n)continue;
-    //         for(int j  = 0; j < group*group; j++){
-    //             int cell = i/n*number_of_cells*group + i%n*group + gen[j];
-    //             if(cell >= number_of_cells*number_of_cells || (cell%number_of_cells)/group + (cell/number_of_cells)/group*n != i)continue;
-    //             for(int dir = 0; dir < 9; dir++){
-    //                 int ncell = cell + dirx[dir] + diry[dir]*number_of_cells;
-    //                 if(ncell < 0 || ncell >= number_of_cells*number_of_cells || (cell%number_of_cells + dirx[dir]) < 0 || (cell%number_of_cells + dirx[dir]) >= number_of_cells)continue;
-    //                 if((ncell%number_of_cells)/group + ncell/number_of_cells/group*n != ni)continue;
-    //                 for(auto p: grid[cell]){
-    //                     for(auto q: grid[ncell]){
-    //                         if(is_particle_overlap(particles[p].loc, particles[q].loc, radius)){
-    //                             overlap[d][i].push_back(std::make_pair(p,q));
-    //                             b++;
-    //                         }
-    //                     }
-    //                 }
-    //             }
-
-        
-        
-    //         }
-    //     }
-    // }
-
-    
-
-    // //Row wise overlap
-    #pragma omp parallel for shared(overlaps) private(d,i) collapse(2) num_threads(num)
-    for(d = -1; d < 2; d++){
-        for(i = 0; i < n; i++){
-            int ni = i + d;
-            if(ni < 0 || ni >= n)continue;
-            overlaps[d+1][i].clear();
-            for(int cell = i*group*number_of_cells; cell < (i+1)*group*number_of_cells; cell+=1){
-                if(cell >= number_of_cells*number_of_cells)break;
-                //if(i == 0)b++;
-                for(int dir = 0; dir < 9; dir++){
-                    int ncell = cell + dirx[dir] + diry[dir]*number_of_cells;
-                    if(ncell < 0 || ncell >= number_of_cells*number_of_cells || (cell%number_of_cells + dirx[dir]) < 0 || (cell%number_of_cells + dirx[dir]) >= number_of_cells)continue;
-                    if(ncell/number_of_cells/group != ni)continue;
-                    for(auto p:grid[cell]){
-                        for(auto q:grid[ncell]){
-                            if(is_particle_overlap(particles[p].loc, particles[q].loc, radius)){
-                                overlaps[d+1][i].push_back(std::make_pair(p,q));
-                                b++;
-                            }
+                        if(is_particle_overlap(particles[l].loc, particles[m].loc, radius)) {
+                            overlap[dir][k].push_back(std::make_pair(l,m));
+                          
                         }
+
                     }
                 }
             }
-            
         }
-
     }
 
-
-
+     
 }
 
 bool resolve_collisions() {
@@ -188,56 +134,37 @@ bool resolve_collisions() {
         }
     }
 
-    // int dirx[] = {0,1,1,0,-1,-1,-1,0,1};
-    // int diry[] = {0,0,1,1,1,0,-1,-1,-1};
-    // for(int d = 0; d < 9; d++) {
+    int dirx[] = {0,1,1,0,-1,-1,-1,0,1};
+    int diry[] = {0,0,1,1,1,0,-1,-1,-1};
+    for(int d = 0; d < 9; d++) {
         
-    //     int i;
-    //     #pragma omp parallel for shared(overlap) private(i) num_threads(num)
-    //     for(i = 0; i < c*c; i++){
+        int i;
+        #pragma omp parallel for shared(overlap) private(i) num_threads(num)
+        for(i = 0; i < n*n; i++){
+            if((i*dirx[d] + (i/n)*diry[d])%2 == 1)continue;
             
-    //         if((i*dirx[d] + (i/c)*diry[d])%2 == 1)continue;
-    //         for(auto p: overlap[d][i]){
-    //             if(is_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel, radius)) {
-    //                 no_collisions = false;
-    //                 resolve_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel);
-    //             }        
-    //         }
-            
-    //     }
-    //     #pragma omp parallel for shared(overlap) private(i) num_threads(num)
-    //     for(i = 0; i < c*c; i++){
-            
-    //         if((i*dirx[d] + (i/c)*diry[d])%2 == 0)continue;
-    //         for(auto p: overlap[d][i]){
-    //             if(is_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel, radius)) {
-    //                 no_collisions = false;
-    //                 resolve_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel);
-    //             }        
-    //         }
-            
-    //     }
-    // }
+                for(auto p: overlap[d][i]){
+                    if(is_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel, radius)) {
+                        no_collisions = false;
+                        resolve_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel);
+                    }    
+                }
 
-
-    for(int d = 0; d<3;d++){
-        #pragma omp parallel for shared(overlaps) private(i) num_threads(num)
-        for(i = 0; i < c; i+=2){
-            for(auto p: overlaps[d][i]){
-                if(is_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel, radius)) {
-                    no_collisions = false;
-                    resolve_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel);
-                }        
-            }
+            
         }
-        #pragma omp parallel for shared(overlaps) private(i) num_threads(num)
-        for(i = 1; i<c;i+=2){
-            for(auto p: overlaps[d][i]){
-                if(is_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel, radius)) {
-                    no_collisions = false;
-                    resolve_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel);
-                }        
-            }
+
+        #pragma omp parallel for shared(overlap) private(i) num_threads(num)
+        for(i = 0; i < n*n; i++){
+            if((i*dirx[d] + (i/n)*diry[d])%2 == 0)continue;
+            
+                for(auto p: overlap[d][i]){
+                    if(is_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel, radius)) {
+                        no_collisions = false;
+                        resolve_particle_collision(particles[p.first].loc, particles[p.first].vel, particles[p.second].loc, particles[p.second].vel);
+                    }    
+                }
+
+            
         }
     }
     return no_collisions;
@@ -265,12 +192,13 @@ int main(int argc, char* argv[]) {
     // Initialize with starting positions
     validator.initialize(particles);
     // Uncomment the line below to enable visualization (makes program much slower)
-    validator.enable_viz_output("test.out");
+    //validator.enable_viz_output("test.out");
 #endif
 
     
-    group = 1;
+    
     number_of_cells = std::min(1000, (int)((params.square_size)/(2*params.param_radius)));
+    group = std::min(10, (int)number_of_cells/5);
     n = (number_of_cells - 1)/group + 1;
     square_size = params.square_size;
     radius = params.param_radius;
@@ -279,7 +207,12 @@ int main(int argc, char* argv[]) {
     for(int i = 0; i<group*group;i++){
         gen[i] = i%group + i/group*number_of_cells;
     }
-    
+    std::cout<<n<<std::endl;
+
+    for(int i = 0; i < n*n;i++){
+        omp_init_lock(&locks[i]);
+    }
+
     auto start_end = std::chrono::high_resolution_clock::now();
     start_time += std::chrono::duration_cast<std::chrono::nanoseconds>(start_end - start_start).count();
 
