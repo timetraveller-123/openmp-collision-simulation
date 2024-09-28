@@ -55,14 +55,14 @@ void assign_grid() {
     clear_grid();
     int i;
     double cell_length = (double)square_size/number_of_cells;
-    //#pragma omp parallel for private(i)
+    #pragma omp parallel for private(i)
     for(i = 0; i < (int)particles.size(); i++) {
         int x = std::min(std::max(0,(int)((particles[i].loc.x)/cell_length)),number_of_cells - 1);
         int y = std::min(std::max(0,(int)((particles[i].loc.y)/cell_length)), number_of_cells - 1);
         
-        //omp_set_lock(&locks[x + y*number_of_cells]);
+        omp_set_lock(&locks[x + y*number_of_cells]);
         grid[x + number_of_cells*y].push_back(i);
-        //omp_unset_lock(&locks[x + y*number_of_cells]);
+        omp_unset_lock(&locks[x + y*number_of_cells]);
 
         
     }
