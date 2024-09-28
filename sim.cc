@@ -22,15 +22,15 @@ std::vector<Particle> particles;
 
 int num;
 
-int number_of_cells = 0, n=0, group = 0, c = 0;
+int number_of_cells = 0, n=0, group = 0;
 int square_size = 0;
 int radius = 0;
 int gen[1000000];
 
 long long assign_grid_time = 0,total_time=0,  overlap_time=0, collision_time =0, start_time = 0;
 
-long long ta = 0, ma = 100000000;
-int a, b;
+ 
+
 void update_positions() {
     int i; int s = (int)particles.size();
     #pragma omp parallel for shared(particles) private(i) num_threads(num)
@@ -78,8 +78,6 @@ void clear_overlap() {
 
 
 void detect_overlaps() {
-    c = n;
-    a = b = 0;
     
     int dirx[] = {0,1,1,0,-1,-1,-1,0,1};
     int diry[] = {0,0,1,1,1,0,-1,-1,-1};
@@ -185,7 +183,8 @@ int main(int argc, char* argv[]) {
     
     // Set number of threads
     omp_set_num_threads(params.param_threads);
-    num = params.param_threads;
+    num = 8;
+
 #if CHECK == 1
     // Initialize collision checker
     SimulationValidator validator(params.param_particles, params.square_size, params.param_radius);
@@ -198,7 +197,7 @@ int main(int argc, char* argv[]) {
     
     
     number_of_cells = std::min(1000, (int)((params.square_size)/(2*params.param_radius)));
-    group = std::min(10, (int)number_of_cells/5);
+    group = std::max(1,std::min(10, (int)number_of_cells/5));
     n = (number_of_cells - 1)/group + 1;
     square_size = params.square_size;
     radius = params.param_radius;
@@ -207,7 +206,6 @@ int main(int argc, char* argv[]) {
     for(int i = 0; i<group*group;i++){
         gen[i] = i%group + i/group*number_of_cells;
     }
-    std::cout<<n<<std::endl;
 
     for(int i = 0; i < n*n;i++){
         omp_init_lock(&locks[i]);
@@ -249,7 +247,7 @@ int main(int argc, char* argv[]) {
         long long t = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
         total_time += t;
 
-        //std::cout<<i<<" "<<t/1000000<<" "<<iter<<" "<<a<<" "<<b<<std::endl;
+        //std::cout<<i<<" "<<t/1000000<<" "<<iter<<std::endl;
 
         
         #if CHECK == 1
